@@ -1,10 +1,22 @@
+/* Import Tailwind v4 layers */
 @import "tailwindcss";
+@tailwind utilities;
 
+/* Base tokens */
 :root {
+  --brand-indigo: #5b21b6;
+
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* Optional: better font smoothing */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tailwind @theme inline to connect vars → theme tokens */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,6 +24,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -19,6 +32,7 @@
   }
 }
 
+/* Apply background + text color globally */
 body {
   background: var(--background);
   color: var(--foreground);
