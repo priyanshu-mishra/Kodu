@@ -1,0 +1,44 @@
+/* src/styles/globals.css — Tailwind v4 style imports + theme tokens */
+
+/* Tailwind v4: import preflight + components + utilities */
+@import "tailwindcss";
+
+/* Optional: still valid in v4 */
+@tailwind utilities;
+
+/* design tokens (light-first; supports toggling via data-theme) */
+:root {
+  --brand-indigo: #5b21b6;
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+:root[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+/* Respect system dark mode only if no explicit data-theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* Tailwind v4 token mapping (optional) */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
+}
