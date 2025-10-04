@@ -26,9 +26,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="flex">
           <Sidebar />
           <div className="flex-1 min-h-screen">
-            <Topbar />
-            <main className="px-8 py-8">{children}</main>
-          </div>
+          <Topbar />
+          <main className="px-8 py-8">{children}</main>   {/* 👈 this renders the page */}
+        </div>
         </div>
       </body>
     </html>

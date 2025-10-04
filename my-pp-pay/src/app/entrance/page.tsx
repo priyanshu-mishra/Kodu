@@ -34,8 +34,7 @@ export default function EntrancePage() {
               title="Customer"
               subtitle="Scan QR, send tokens and manage your wallet"
               gradient="from-purple-800 via-fuchsia-600 to-pink-400"
-              onClick={() => router.push('/customer/login')}
-            />
+              onClick={() => router.push('/customer')}            />
           </section>
 
           <footer className="mt-10 text-center text-sm text-slate-400">
