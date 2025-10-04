@@ -1,17 +1,16 @@
 // src/components/ChoiceCard.tsx
 'use client'
-
 import React from 'react'
 
 type Props = {
   title: string
   subtitle?: string
   icon?: React.ReactNode
-  gradient?: string // tailwind gradient classes e.g. "from-indigo-800 via-violet-600 to-violet-400"
+  gradient?: string
   onClick?: () => void
 }
 
-export default function ChoiceCard({ title, subtitle, icon, gradient = 'from-indigo-800 to-violet-400', onClick }: Props) {
+export default function ChoiceCard({ title, subtitle, icon, gradient = 'from-indigo-800 via-violet-600 to-violet-400', onClick }: Props) {
   return (
     <div
       role="button"
@@ -21,7 +20,6 @@ export default function ChoiceCard({ title, subtitle, icon, gradient = 'from-ind
       className={`relative cursor-pointer select-none overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-8 shadow-2xl transform transition-all duration-300 hover:scale-[1.02] focus:scale-[1.02] active:scale-[0.99] outline-none ring-0 focus:ring-4 focus:ring-white/20`}
       aria-label={title}
     >
-      {/* subtle shine */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(600px_200px_at_80%_10%,rgba(255,255,255,0.06),transparent)] mix-blend-screen" />
 
       <div className="relative z-10 flex h-full flex-col justify-between">
