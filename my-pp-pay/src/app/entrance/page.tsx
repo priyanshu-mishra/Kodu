@@ -28,8 +28,8 @@ export default function EntrancePage() {
               title="Vendor"
               subtitle="Create payment QR codes, manage transactions & settlements"
               gradient="from-indigo-800 via-violet-600 to-violet-400"
-              onClick={() => router.push('/vendor/login')}
-            />
+              onClick={() => router.push('/vendor')}
+              />
             <ChoiceCard
               title="Customer"
               subtitle="Scan QR, send tokens and manage your wallet"
