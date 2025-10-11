@@ -8,11 +8,21 @@
     "start": "next start"
   },
   "dependencies": {
+<<<<<<< HEAD
+=======
+    "@supabase/supabase-js": "^2.75.0",
+    "ethers": "^6.15.0",
+>>>>>>> 4371de95b79e90035fc559eede690bfd84ab07c9
     "html5-qrcode": "^2.3.8",
     "next": "15.5.4",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
+<<<<<<< HEAD
     "react-dom": "19.1.0"
+=======
+    "react-dom": "19.1.0",
+    "thirdweb": "^5.108.10"
+>>>>>>> 4371de95b79e90035fc559eede690bfd84ab07c9
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.14",

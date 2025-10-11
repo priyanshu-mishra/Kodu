@@ -203,8 +203,13 @@ export default function Sidebar() {
         <div className="mt-2 flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">👤</div>
           <div>
+<<<<<<< HEAD
             <div className="text-sm font-medium text-slate-900">Emma Wilson</div>
             <div className="text-xs text-slate-600">$699.00 Available</div>
+=======
+            <div className="text-sm font-medium">Emma Wilson</div>
+            <div className="text-xs text-white/60">$699.00 Available</div>
+>>>>>>> 4371de95b79e90035fc559eede690bfd84ab07c9
           </div>
         </div>
       </div>
