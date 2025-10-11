@@ -73,8 +73,8 @@ const LoginForm: React.FC = () => {
           <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-2xl font-bold text-white">💰</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">StablePay</h1>
-          <p className="text-gray-600">Send and receive stablecoins with ease</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Kodu</h1>
+          <p className="text-gray-600">Making Payments Easier 💸</p>
         </div>
 
         {/* Login Form */}

@@ -260,8 +260,19 @@ export const createPayment = async (
     recipient,
     tokenAddress,
     amount,
-    chainId
+    chainId,
+    userToken: userToken ? `${userToken.substring(0, 20)}...` : 'NO_TOKEN'
   });
+
+  // Validate inputs
+  if (!CLIENT_ID) {
+    throw new Error('thirdweb Client ID is not configured');
+  }
+  
+  if (!userToken) {
+    throw new Error('User authentication token is required');
+  }
+
   const response = await fetch(`${THIRDWEB_API_BASE}/payments`, {
     method: 'POST',
     headers: {
@@ -281,12 +292,23 @@ export const createPayment = async (
     })
   });
 
-  console.log('create payment response:', response);
+  console.log('create payment response status:', response.status);
+  console.log('create payment response headers:', Object.fromEntries(response.headers.entries()));
   
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Create payment error response:', errorText);
-    throw new Error(`Failed to create payment: ${response.status} ${response.statusText}`);
+    
+    // Provide more specific error messages
+    if (response.status === 401) {
+      throw new Error('Authentication failed. Please log out and log back in to refresh your session.');
+    } else if (response.status === 403) {
+      throw new Error('Access forbidden. Check your thirdweb client permissions.');
+    } else if (response.status === 400) {
+      throw new Error(`Invalid request: ${errorText}`);
+    } else {
+      throw new Error(`Failed to create payment: ${response.status} ${response.statusText}. ${errorText}`);
+    }
   }
   
   const data = await response.json();

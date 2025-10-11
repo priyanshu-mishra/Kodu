@@ -1,6 +1,6 @@
-# StablePay Web App - AI Development Guide
+# Kodu Web App - AI Development Guide
 
-Build a complete Venmo-style peer-to-peer cryptocurrency payment application that allows users to send and receive stablecoins (USDC/USDT) to other registered users by username. This guide provides the complete technical specification for building StablePay from scratch using modern React, TypeScript, and thirdweb APIs.
+Build a complete Venmo-style peer-to-peer cryptocurrency payment application that allows users to send and receive cryptocurrency and stablecoins (USDC/USDT) to other registered users by username. This guide provides the complete technical specification for building Kodu from scratch using modern React, TypeScript, and thirdweb APIs.
 
 ## ✨ Core Features Required
 

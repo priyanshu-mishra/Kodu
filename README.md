@@ -1,4 +1,4 @@
-# 💰 StablePay - Peer to Peer Stablecoin Payments using thirdweb
+# 💰 Kodu - Peer to Peer Payments Made Easier
 
 A fully functional peer-to-peer cryptocurrency payment application built with React, thirdweb APIs, and Supabase. Send and receive stablecoins (USDC/USDT) to other users by username with a Venmo-inspired interface.
 
@@ -286,11 +286,11 @@ The app is built with:
 
 ## 🤖 Building Your Own with AI Agents
 
-Want to build your own version of StablePay from scratch using AI coding agents? We've included a comprehensive AI development guide!
+Want to build your own version of Kodu from scratch using AI coding agents? We've included a comprehensive AI development guide!
 
 ### 📋 **AI Agent Development Guide**
 
-The [`ai-docs/AGENTS.md`](ai-docs/AGENTS.md) file contains a complete specification for building StablePay from the ground up using AI coding assistants like Claude, ChatGPT, or Cursor's AI.
+The [`ai-docs/AGENTS.md`](ai-docs/AGENTS.md) file contains a complete specification for building Kodu from the ground up using AI coding assistants like Claude, ChatGPT, or Cursor's AI.
 
 **What's included:**
 - **📚 Complete Technical Specification**: All features, APIs, and requirements

@@ -1,4 +1,4 @@
--- Simplified StablePay Database Schema
+-- Simplified Kodu Database Schema
 -- Run this SQL in your Supabase SQL editor to fix 406 errors
 
 -- Enable UUID extension

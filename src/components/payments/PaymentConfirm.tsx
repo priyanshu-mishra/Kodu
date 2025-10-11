@@ -15,7 +15,7 @@ interface PaymentConfirmProps {
 type PaymentStatus = 'confirming' | 'sending' | 'monitoring' | 'success' | 'failed';
 
 const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, onSuccess }) => {
-  const { user, token } = useAuth();
+  const { user, token, isTokenExpired, handleTokenExpiration } = useAuth();
   const [status, setStatus] = useState<PaymentStatus>('confirming');
   const [error, setError] = useState('');
   const [transactionHash, setTransactionHash] = useState('');
@@ -40,6 +40,13 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
 
   const executePayment = async () => {
     if (!user?.wallet_address || !token) return;
+
+    // Check if token is expired
+    if (isTokenExpired()) {
+      setError('Your session has expired. Please log out and log back in.');
+      handleTokenExpiration();
+      return;
+    }
 
     try {
       setStatus('sending');
@@ -594,13 +601,15 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
       {/* Action Buttons */}
       <div className="space-y-3">
         {status === 'confirming' && !showInsufficientFunds && (
-          <button
-            onClick={executePayment}
-            className="venmo-button w-full flex items-center justify-center"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Send Payment
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={executePayment}
+              className="venmo-button w-full flex items-center justify-center"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Send Payment
+            </button>
+          </div>
         )}
 
         {status === 'confirming' && showInsufficientFunds && (

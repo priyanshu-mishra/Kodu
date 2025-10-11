@@ -1,4 +1,4 @@
-# 🚀 Quick Setup Guide for StablePay
+# 🚀 Quick Setup Guide for Kodu
 
 ## ⚠️ Authentication Error Fix
 

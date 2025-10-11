@@ -18,11 +18,14 @@ const TransactionHistory: React.FC = () => {
     const loadTransactions = async () => {
       try {
         setIsLoading(true);
+        setError('');
+        console.log('Loading transactions for user:', user.id);
         const userTransactions = await getUserTransactions(user.id);
+        console.log('Loaded transactions:', userTransactions);
         setTransactions(userTransactions);
       } catch (error) {
         console.error('Failed to load transactions:', error);
-        setError('Failed to load transaction history');
+        setError(`Failed to load transaction history: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }

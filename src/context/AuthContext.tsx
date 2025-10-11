@@ -16,6 +16,8 @@ interface AuthContextType extends AuthState {
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   refreshUser: () => Promise<void>;
+  isTokenExpired: () => boolean;
+  handleTokenExpiration: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -97,9 +99,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const authResult = await verifyLoginCode(email, code);
       const { token, walletAddress, isNewUser } = authResult;
 
-      // Store token and wallet address
+      // Store token and wallet address with timestamp
       localStorage.setItem('thirdweb_token', token);
       localStorage.setItem('wallet_address', walletAddress);
+      localStorage.setItem('token_timestamp', Date.now().toString());
 
       // Create or get user from Supabase
       let user: User;
@@ -132,6 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('thirdweb_token');
     localStorage.removeItem('wallet_address');
+    localStorage.removeItem('token_timestamp');
     setAuthState({
       isAuthenticated: false,
       isLoading: false,
@@ -139,6 +143,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       token: null,
       walletAddress: null,
     });
+  };
+
+  const isTokenExpired = (): boolean => {
+    const tokenTimestamp = localStorage.getItem('token_timestamp');
+    if (!tokenTimestamp) return true;
+    
+    const tokenAge = Date.now() - parseInt(tokenTimestamp);
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    
+    return tokenAge > maxAge;
+  };
+
+  const handleTokenExpiration = () => {
+    console.log('Token expired, logging out user');
+    logout();
+    // You could also show a modal asking user to re-authenticate
   };
 
   const updateUser = (updates: Partial<User>) => {
@@ -168,6 +188,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     updateUser,
     refreshUser,
+    isTokenExpired,
+    handleTokenExpiration,
   };
 
   return (
