@@ -188,18 +188,38 @@ export const verifyLoginCode = async (email: string, code: string): Promise<Auth
 };
 
 // Balance Functions
-export const getWalletBalance = async (address: string, chainId: number, tokenAddress?: string): Promise<BalanceResponse> => {
+// Thirdweb Balance API returns an array of results even for a single chainId
+// Define types to reflect the API response accurately
+export interface BalanceItem {
+  chainId?: number;
+  decimals: number;
+  displayValue?: string;
+  name: string;
+  symbol: string;
+  tokenAddress?: string;
+  value: string;
+}
+
+export interface WalletBalanceAPIResponse {
+  result: BalanceItem[];
+}
+
+export const getWalletBalance = async (address: string, chainId: number, tokenAddress?: string): Promise<WalletBalanceAPIResponse> => {
   const url = new URL(`${THIRDWEB_API_BASE}/wallets/${address}/balance`);
   url.searchParams.append('chainId', chainId.toString());
   
   // If tokenAddress is provided, add it as a query parameter
-  // If not provided, it will fetch native token balance
+  // For native token balance, omit the tokenAddress parameter entirely
   if (tokenAddress && tokenAddress !== '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE') {
     url.searchParams.append('tokenAddress', tokenAddress);
   }
   
   console.log('Fetching balance for:', { address, chainId, tokenAddress, url: url.toString() });
   
+  if (!CLIENT_ID) {
+    throw new Error('thirdweb Client ID is not configured (VITE_THIRDWEB_CLIENT_ID).');
+  }
+
   const response = await fetch(url.toString(), {
     headers: {
       'x-client-id': CLIENT_ID
@@ -215,17 +235,33 @@ export const getWalletBalance = async (address: string, chainId: number, tokenAd
   const data = await response.json();
   console.log('Balance response:', data);
   
-  return data;
+  // The API returns { result: [...] } format
+  // Ensure we always return an array in the result field
+  if (data.result && Array.isArray(data.result)) {
+    return data as WalletBalanceAPIResponse;
+  }
+  
+  // If result is a single object, wrap it in an array
+  if (data.result && typeof data.result === 'object') {
+    return { result: [data.result] } as WalletBalanceAPIResponse;
+  }
+  
+  // Fallback: return empty array
+  return { result: [] } as WalletBalanceAPIResponse;
 };
 
 // Get native token balance (ETH, MATIC, etc.)
-export const getNativeTokenBalance = async (address: string, chainId: number): Promise<BalanceResponse> => {
+export const getNativeTokenBalance = async (address: string, chainId: number): Promise<WalletBalanceAPIResponse> => {
   const url = new URL(`${THIRDWEB_API_BASE}/wallets/${address}/balance`);
   url.searchParams.append('chainId', chainId.toString());
   // Don't add tokenAddress for native token balance
   
   console.log('Fetching native token balance for:', { address, chainId, url: url.toString() });
   
+  if (!CLIENT_ID) {
+    throw new Error('thirdweb Client ID is not configured (VITE_THIRDWEB_CLIENT_ID).');
+  }
+
   const response = await fetch(url.toString(), {
     headers: {
       'x-client-id': CLIENT_ID
@@ -241,10 +277,62 @@ export const getNativeTokenBalance = async (address: string, chainId: number): P
   const data = await response.json();
   console.log('Native balance response:', data);
   
-  return data;
+  if (Array.isArray(data.result)) {
+    return data as WalletBalanceAPIResponse;
+  }
+  return { result: [data.result] } as WalletBalanceAPIResponse;
 };
 
-// Payment Functions
+// Get balances across multiple chains (native tokens)
+// Supports up to 50 chains as per thirdweb API limits
+export const getMultiChainBalance = async (address: string, chainIds: number[]): Promise<WalletBalanceAPIResponse> => {
+  if (chainIds.length === 0) {
+    throw new Error('At least one chain ID is required');
+  }
+  
+  if (chainIds.length > 50) {
+    throw new Error('Maximum 50 chain IDs allowed');
+  }
+  
+  const url = new URL(`${THIRDWEB_API_BASE}/wallets/${address}/balance`);
+  
+  // Add multiple chainId parameters
+  chainIds.forEach(chainId => {
+    url.searchParams.append('chainId', chainId.toString());
+  });
+  
+  console.log('Fetching multi-chain balance for:', { address, chainIds, url: url.toString() });
+  
+  if (!CLIENT_ID) {
+    throw new Error('thirdweb Client ID is not configured (VITE_THIRDWEB_CLIENT_ID).');
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      'x-client-id': CLIENT_ID
+    }
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Multi-chain balance error response:', errorText);
+    throw new Error(`Failed to get multi-chain balance: ${response.status} ${response.statusText}`);
+  }
+  
+  const data = await response.json();
+  console.log('Multi-chain balance response:', data);
+  
+  // API returns array of balances for multiple chains
+  if (data.result && Array.isArray(data.result)) {
+    return data as WalletBalanceAPIResponse;
+  }
+  
+  return { result: [] } as WalletBalanceAPIResponse;
+};
+
+// Payment Functions - Using thirdweb's direct wallet transfer API
+// Note: thirdweb's Payment API is for merchant/checkout flows
+// For P2P transfers, we use the wallet send API directly
 export const createPayment = async (
   name: string,
   description: string,
@@ -273,56 +361,32 @@ export const createPayment = async (
     throw new Error('User authentication token is required');
   }
 
-  const response = await fetch(`${THIRDWEB_API_BASE}/payments`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-client-id': CLIENT_ID,
-      'Authorization': `Bearer ${userToken}`
-    },
-    body: JSON.stringify({
-      name,
-      description,
-      recipient,
-      token: {
-        address: tokenAddress,
-        chainId,
-        amount
-      }
-    })
-  });
-
-  console.log('create payment response status:', response.status);
-  console.log('create payment response headers:', Object.fromEntries(response.headers.entries()));
+  // For P2P payments, we'll create a payment intent that can be completed
+  // This is a placeholder ID that we'll use to track the payment
+  const paymentId = `payment_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Create payment error response:', errorText);
-    
-    // Provide more specific error messages
-    if (response.status === 401) {
-      throw new Error('Authentication failed. Please log out and log back in to refresh your session.');
-    } else if (response.status === 403) {
-      throw new Error('Access forbidden. Check your thirdweb client permissions.');
-    } else if (response.status === 400) {
-      throw new Error(`Invalid request: ${errorText}`);
-    } else {
-      throw new Error(`Failed to create payment: ${response.status} ${response.statusText}. ${errorText}`);
-    }
-  }
+  // Store payment details in memory for completion
+  // In production, you'd store this in a database
+  const paymentData = {
+    id: paymentId,
+    name,
+    description,
+    recipient,
+    tokenAddress,
+    amount,
+    chainId,
+    status: 'pending'
+  };
   
-  const data = await response.json();
-  console.log('create payment data:', data);
+  // Store in sessionStorage for now
+  sessionStorage.setItem(`payment_${paymentId}`, JSON.stringify(paymentData));
   
-  // Extract the result from the API response structure
-  if (data.result && data.result.id) {
-    return {
-      id: data.result.id,
-      link: data.result.link
-    };
-  }
+  console.log('Payment intent created:', paymentData);
   
-  throw new Error('Invalid payment response format from thirdweb API');
+  return {
+    id: paymentId,
+    link: `#payment/${paymentId}` // Internal link for insufficient funds flow
+  };
 };
 
 export const completePayment = async (
@@ -334,36 +398,48 @@ export const completePayment = async (
     paymentId,
     fromAddress
   });
-  const response = await fetch(`${THIRDWEB_API_BASE}/payments/${paymentId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-client-id': CLIENT_ID,
-      'Authorization': `Bearer ${userToken}`
-    },
-    body: JSON.stringify({
-      from: fromAddress
-    })
-  });
-
-  console.log('Complete payment response:', response.status);
   
-  if (response.status === 402) {
-    // Insufficient funds - return the payment link for user to add funds
-    const data = await response.json();
-    console.log('Insufficient funds, payment link available:', data);
-    console.log('Response status:', response.status);
-    console.log('Response data:', data);
-    return data as InsufficientFundsResponse;
+  // Retrieve payment data from sessionStorage
+  const paymentDataStr = sessionStorage.getItem(`payment_${paymentId}`);
+  if (!paymentDataStr) {
+    throw new Error('Payment not found. Please try again.');
   }
   
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Complete payment error response:', errorText);
-    throw new Error(`Failed to complete payment: ${response.status} ${response.statusText}`);
-  }
+  const paymentData = JSON.parse(paymentDataStr);
   
-  return response.json();
+  // Use thirdweb's wallet send API to execute the transfer
+  try {
+    const result = await sendTokens(
+      fromAddress,
+      paymentData.recipient,
+      paymentData.amount,
+      paymentData.chainId,
+      userToken,
+      paymentData.tokenAddress
+    );
+    
+    console.log('Payment completed successfully:', result);
+    
+    // Clean up payment data
+    sessionStorage.removeItem(`payment_${paymentId}`);
+    
+    return result;
+  } catch (error: any) {
+    console.error('Payment completion error:', error);
+    
+    // Check if this is an insufficient funds error
+    if (error.message && error.message.includes('insufficient')) {
+      // Return insufficient funds response
+      return {
+        result: {
+          link: `https://thirdweb.com/wallet?chainId=${paymentData.chainId}`,
+          rawQuote: {}
+        }
+      } as InsufficientFundsResponse;
+    }
+    
+    throw error;
+  }
 };
 
 // Get payment status without completing it
@@ -393,7 +469,7 @@ export const getPaymentStatus = async (
   return response.json();
 };
 
-// Legacy direct token transfer (keeping as fallback)
+// Direct token transfer using thirdweb's wallet API
 export const sendTokens = async (
   fromAddress: string,
   toAddress: string,
@@ -402,6 +478,14 @@ export const sendTokens = async (
   userToken: string,
   tokenAddress?: string
 ): Promise<TransactionResponse> => {
+  console.log('Sending tokens:', {
+    from: fromAddress,
+    to: toAddress,
+    amount,
+    chainId,
+    tokenAddress
+  });
+
   const recipients = [{
     address: toAddress,
     quantity: amount
@@ -413,9 +497,13 @@ export const sendTokens = async (
     recipients
   };
 
-  if (tokenAddress) {
+  // Add token address for ERC20 transfers
+  // Omit for native token transfers (ETH, MATIC, etc.)
+  if (tokenAddress && tokenAddress !== '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE') {
     body.tokenAddress = tokenAddress;
   }
+
+  console.log('Send tokens request body:', JSON.stringify(body, null, 2));
 
   const response = await fetch(`${THIRDWEB_API_BASE}/wallets/send`, {
     method: 'POST',
@@ -427,13 +515,37 @@ export const sendTokens = async (
     body: JSON.stringify(body)
   });
   
+  console.log('Send tokens response status:', response.status);
+  
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Send tokens error response:', errorText);
-    throw new Error(`Failed to send tokens: ${response.status} ${response.statusText}`);
+    
+    // Provide more specific error messages
+    if (response.status === 401) {
+      throw new Error('Authentication failed. Please log out and log back in.');
+    } else if (response.status === 400) {
+      // Parse error to check for insufficient funds
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error && errorData.error.includes('insufficient')) {
+          throw new Error('Insufficient funds to complete this transaction.');
+        }
+      } catch (e) {
+        // If parsing fails, use generic error
+      }
+      throw new Error(`Invalid request: ${errorText}`);
+    } else if (response.status === 403) {
+      throw new Error('Access forbidden. Check your wallet permissions.');
+    } else {
+      throw new Error(`Failed to send tokens: ${response.status} ${response.statusText}`);
+    }
   }
   
-  return response.json();
+  const data = await response.json();
+  console.log('Send tokens response data:', data);
+  
+  return data;
 };
 
 export const getTransactionStatus = async (transactionId: string): Promise<TransactionStatusResponse> => {
@@ -497,4 +609,89 @@ export const getWalletTransactions = async (address: string, chainId: number, li
   }
   
   return response.json();
+};
+
+// Blockchain Explorer Utilities
+export const getBlockExplorerUrl = (chainId: number, txHash: string): string => {
+  const explorers: Record<number, string> = {
+    1: 'https://etherscan.io/tx/',
+    137: 'https://polygonscan.com/tx/',
+    8453: 'https://basescan.org/tx/',
+  };
+  
+  const baseUrl = explorers[chainId];
+  if (!baseUrl) {
+    console.warn(`No explorer URL configured for chain ID ${chainId}`);
+    return '';
+  }
+  
+  return `${baseUrl}${txHash}`;
+};
+
+export const getBlockExplorerAddressUrl = (chainId: number, address: string): string => {
+  const explorers: Record<number, string> = {
+    1: 'https://etherscan.io/address/',
+    137: 'https://polygonscan.com/address/',
+    8453: 'https://basescan.org/address/',
+  };
+  
+  const baseUrl = explorers[chainId];
+  if (!baseUrl) {
+    console.warn(`No explorer URL configured for chain ID ${chainId}`);
+    return '';
+  }
+  
+  return `${baseUrl}${address}`;
+};
+
+export const getBlockExplorerName = (chainId: number): string => {
+  const names: Record<number, string> = {
+    1: 'Etherscan',
+    137: 'Polygonscan',
+    8453: 'Basescan',
+  };
+  
+  return names[chainId] || 'Block Explorer';
+};
+
+// Buy Crypto Utilities - Using thirdweb's on-ramp
+export interface BuyCryptoOptions {
+  walletAddress: string;
+  chainId: number;
+  tokenAddress?: string;
+  amount?: string;
+}
+
+export const generateBuyCryptoUrl = (options: BuyCryptoOptions): string => {
+  const { walletAddress, chainId, tokenAddress, amount } = options;
+  
+  // thirdweb's buy crypto URL format
+  const baseUrl = 'https://thirdweb.com/wallet';
+  const url = new URL(baseUrl);
+  
+  // Add parameters
+  url.searchParams.append('buyModal', 'true');
+  url.searchParams.append('receiverAddress', walletAddress);
+  url.searchParams.append('chainId', chainId.toString());
+  
+  if (tokenAddress) {
+    url.searchParams.append('tokenAddress', tokenAddress);
+  }
+  
+  if (amount) {
+    url.searchParams.append('amount', amount);
+  }
+  
+  // Add client ID for tracking
+  if (CLIENT_ID) {
+    url.searchParams.append('clientId', CLIENT_ID);
+  }
+  
+  return url.toString();
+};
+
+// Open buy crypto modal
+export const openBuyCryptoModal = (options: BuyCryptoOptions): void => {
+  const url = generateBuyCryptoUrl(options);
+  window.open(url, '_blank', 'width=500,height=700,noopener,noreferrer');
 };

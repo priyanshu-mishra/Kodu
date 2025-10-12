@@ -13,11 +13,13 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   login: (email: string, code: string) => Promise<void>;
   sendCode: (email: string) => Promise<void>;
+  loginWithWallet: (walletAddress: string) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   refreshUser: () => Promise<void>;
   isTokenExpired: () => boolean;
   handleTokenExpiration: () => void;
+  setAuthState: (state: AuthState) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,8 +51,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const storedToken = localStorage.getItem('thirdweb_token');
         const storedWalletAddress = localStorage.getItem('wallet_address');
+        const authMethod = localStorage.getItem('auth_method');
 
-        if (storedToken && storedWalletAddress) {
+        if (storedWalletAddress) {
           // Try to get user from Supabase
           const user = await getUserByWalletAddress(storedWalletAddress);
           
@@ -59,13 +62,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               isAuthenticated: true,
               isLoading: false,
               user,
-              token: storedToken,
+              token: authMethod === 'email' ? storedToken : null,
               walletAddress: storedWalletAddress,
             });
           } else {
-            // Token exists but user not found, clear storage
+            // User not found, clear storage
             localStorage.removeItem('thirdweb_token');
             localStorage.removeItem('wallet_address');
+            localStorage.removeItem('auth_method');
             setAuthState(prev => ({ ...prev, isLoading: false }));
           }
         } else {
@@ -75,6 +79,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('Failed to initialize auth:', error);
         localStorage.removeItem('thirdweb_token');
         localStorage.removeItem('wallet_address');
+        localStorage.removeItem('auth_method');
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
     };
@@ -102,6 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Store token and wallet address with timestamp
       localStorage.setItem('thirdweb_token', token);
       localStorage.setItem('wallet_address', walletAddress);
+      localStorage.setItem('auth_method', 'email');
       localStorage.setItem('token_timestamp', Date.now().toString());
 
       // Create or get user from Supabase
@@ -132,9 +138,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loginWithWallet = async (walletAddress: string) => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+
+      // Check if user exists in Supabase
+      let user = await getUserByWalletAddress(walletAddress);
+      
+      if (!user) {
+        // Create new user with wallet address
+        user = await createOrUpdateUser('', walletAddress);
+      }
+
+      // Store wallet address and auth method
+      localStorage.setItem('wallet_address', walletAddress);
+      localStorage.setItem('auth_method', 'wallet');
+
+      setAuthState({
+        isAuthenticated: true,
+        isLoading: false,
+        user,
+        token: null, // No JWT token for wallet connections
+        walletAddress,
+      });
+    } catch (error) {
+      console.error('Wallet login failed:', error);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('thirdweb_token');
     localStorage.removeItem('wallet_address');
+    localStorage.removeItem('auth_method');
     localStorage.removeItem('token_timestamp');
     setAuthState({
       isAuthenticated: false,
@@ -185,11 +222,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     ...authState,
     login,
     sendCode,
+    loginWithWallet,
     logout,
     updateUser,
     refreshUser,
     isTokenExpired,
     handleTokenExpiration,
+    setAuthState,
   };
 
   return (

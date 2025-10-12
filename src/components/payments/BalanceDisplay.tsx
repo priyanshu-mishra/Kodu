@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Wallet, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Wallet, RefreshCw, Eye, EyeOff, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getWalletBalance } from '../../utils/thirdwebAPI';
 import { CHAINS, formatTokenAmount, type TokenContract, DEFAULT_CHAIN_ID } from '../../utils/contracts';
 import TokenChainSelector from '../ui/TokenChainSelector';
 import { useChainTokenPreference } from '../../hooks/useChainTokenPreference';
+import BuyCrypto from './BuyCrypto';
 
 interface Balance {
   token: TokenContract;
@@ -20,6 +21,7 @@ const BalanceDisplay: React.FC = () => {
   const [showBalances, setShowBalances] = useState(true);
   const [error, setError] = useState('');
   const [showAllChains, setShowAllChains] = useState(false);
+  const [showBuyCrypto, setShowBuyCrypto] = useState(false);
 
   const { user } = useAuth();
   const { preference, updateChain, updateToken } = useChainTokenPreference();
@@ -175,6 +177,21 @@ const BalanceDisplay: React.FC = () => {
     );
   }
 
+  // Handle buy crypto modal
+  if (showBuyCrypto) {
+    return (
+      <BuyCrypto
+        preselectedChainId={selectedChainId}
+        preselectedTokenAddress={selectedTokenAddress || undefined}
+        onClose={() => {
+          setShowBuyCrypto(false);
+          // Refresh balances after closing buy crypto modal
+          setTimeout(() => fetchBalances(true), 2000);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="venmo-card">
       {/* Header */}
@@ -185,6 +202,13 @@ const BalanceDisplay: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowBuyCrypto(true)}
+            className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            title="Buy Crypto"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
           <button
             onClick={toggleVisibility}
             className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
@@ -287,13 +311,22 @@ const BalanceDisplay: React.FC = () => {
           {balances.length === 0 && (
             <div className="text-center py-8">
               <Wallet className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No balances to display</p>
-              <button
-                onClick={() => fetchBalances()}
-                className="text-blue-500 text-sm mt-2 hover:underline"
-              >
-                Refresh
-              </button>
+              <p className="text-gray-500 mb-4">No balances to display</p>
+              <div className="flex flex-col items-center space-y-2">
+                <button
+                  onClick={() => setShowBuyCrypto(true)}
+                  className="venmo-button px-6 py-2 text-sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Buy Crypto
+                </button>
+                <button
+                  onClick={() => fetchBalances()}
+                  className="text-blue-500 text-sm hover:underline"
+                >
+                  Refresh
+                </button>
+              </div>
             </div>
           )}
 

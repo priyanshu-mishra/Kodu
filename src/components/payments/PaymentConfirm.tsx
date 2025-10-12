@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Send, CheckCircle, AlertCircle, ExternalLink, XCircle } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle, AlertCircle, ExternalLink, XCircle, CreditCard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { createPayment, completePayment, getPaymentStatus, getTransactionStatus, isInsufficientFundsResponse, mapThirdwebStatusToInternal } from '../../utils/thirdwebAPI';
+import { createPayment, completePayment, getPaymentStatus, getTransactionStatus, isInsufficientFundsResponse, mapThirdwebStatusToInternal, getBlockExplorerUrl, getBlockExplorerName, openBuyCryptoModal } from '../../utils/thirdwebAPI';
 import { createTransaction, updateTransactionStatus, updateThirdwebTransactionId } from '../../utils/supabase';
 import { CHAINS } from '../../utils/contracts';
 import { type PaymentData } from './SendPayment';
@@ -288,6 +288,21 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
     window.location.href = '/';
   };
 
+  const handleBuyCrypto = () => {
+    if (!user?.wallet_address) return;
+    
+    // Open thirdweb's buy crypto modal
+    openBuyCryptoModal({
+      walletAddress: user.wallet_address,
+      chainId: selectedToken.chainId,
+      tokenAddress: selectedToken.address,
+      amount: amount
+    });
+    
+    // Start monitoring for balance updates
+    startPaymentMonitoring();
+  };
+
   const openPaymentLink = () => {
     if (paymentLink) {
       // Open payment link in modal dialog
@@ -431,14 +446,11 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
 
   const getExplorerUrl = () => {
     if (!transactionHash) return '';
-    
-    const baseUrls: Record<number, string> = {
-      1: 'https://etherscan.io/tx/',
-      137: 'https://polygonscan.com/tx/',
-      8453: 'https://basescan.org/tx/',
-    };
-
-    return baseUrls[selectedToken.chainId] + transactionHash;
+    return getBlockExplorerUrl(selectedToken.chainId, transactionHash);
+  };
+  
+  const getExplorerName = () => {
+    return getBlockExplorerName(selectedToken.chainId);
   };
 
   return (
@@ -553,22 +565,33 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
       )}
 
       {/* Insufficient Funds Message */}
-      {showInsufficientFunds && paymentLink && (
+      {showInsufficientFunds && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start space-x-3">
             <AlertCircle className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-blue-600 text-sm font-medium">Insufficient Funds</p>
               <p className="text-blue-600 text-sm mt-1">
-                You need to add funds to complete this payment. Click the button below to open the payment page.
+                You need to add {amount} {selectedToken.symbol} to complete this payment.
               </p>
-              <button
-                onClick={openPaymentLink}
-                className="inline-flex items-center text-blue-600 text-sm mt-2 hover:underline font-medium"
-              >
-                <ExternalLink className="h-3 w-3 mr-1" />
-                Open Payment Page
-              </button>
+              <div className="flex items-center space-x-3 mt-3">
+                <button
+                  onClick={handleBuyCrypto}
+                  className="inline-flex items-center text-blue-600 text-sm hover:underline font-medium"
+                >
+                  <CreditCard className="h-3 w-3 mr-1" />
+                  Buy Crypto
+                </button>
+                {paymentLink && (
+                  <button
+                    onClick={openPaymentLink}
+                    className="inline-flex items-center text-blue-600 text-sm hover:underline font-medium"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Alternative Payment
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -590,7 +613,7 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
                 rel="noopener noreferrer"
                 className="inline-flex items-center text-green-600 text-sm mt-2 hover:underline"
               >
-                View on Explorer
+                View on {getExplorerName()}
                 <ExternalLink className="h-3 w-3 ml-1" />
               </a>
             </div>
@@ -615,12 +638,21 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
         {status === 'confirming' && showInsufficientFunds && (
           <div className="space-y-3">
             <button
-              onClick={openPaymentLink}
+              onClick={handleBuyCrypto}
               className="venmo-button w-full flex items-center justify-center"
             >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open Payment Page
+              <CreditCard className="h-4 w-4 mr-2" />
+              Buy {selectedToken.symbol}
             </button>
+            {paymentLink && (
+              <button
+                onClick={openPaymentLink}
+                className="w-full py-3 px-4 border border-blue-300 rounded-xl text-blue-700 font-medium hover:bg-blue-50 transition-colors flex items-center justify-center"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Alternative Payment Method
+              </button>
+            )}
             <button
               onClick={() => {
                 setShowInsufficientFunds(false);

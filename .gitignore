@@ -24,8 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
-.env.example
 
 README.md
 SETUP.md
