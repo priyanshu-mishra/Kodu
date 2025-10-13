@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Mail, Shield, ArrowRight } from 'lucide-react';
+import { Mail, Shield, ArrowRight, Wallet } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import ConnectButton from './ConnectButton';
+
 
 const LoginForm: React.FC = () => {
   const [step, setStep] = useState<'email' | 'code'>('email');
@@ -8,6 +10,7 @@ const LoginForm: React.FC = () => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [authMethod, setAuthMethod] = useState<'email' | 'wallet'>('email');
 
   const { sendCode, login } = useAuth();
 
@@ -65,8 +68,17 @@ const LoginForm: React.FC = () => {
     setError('');
   };
 
+  const handleWalletSuccess = () => {
+    console.log('Wallet connected successfully');
+    // The ConnectButton component will handle the authentication
+  };
+
+  const handleWalletError = (error: string) => {
+    setError(error);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4 login-page">
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
@@ -80,15 +92,46 @@ const LoginForm: React.FC = () => {
         {/* Login Form */}
         <div className="venmo-card">
           {step === 'email' ? (
-            <form onSubmit={handleSendCode} className="space-y-6">
+            <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
                   Welcome back
                 </h2>
                 <p className="text-gray-600 text-sm mb-6">
-                  Enter your email to get started
+                  Choose how you'd like to sign in
                 </p>
               </div>
+
+              {/* Authentication Method Selector */}
+              <div className="flex space-x-2 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('email')}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    authMethod === 'email'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Mail className="w-4 h-4 inline mr-2" />
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMethod('wallet')}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    authMethod === 'wallet'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Wallet className="w-4 h-4 inline mr-2" />
+                  Wallet
+                </button>
+              </div>
+
+              {authMethod === 'email' ? (
+                <form onSubmit={handleSendCode} className="space-y-4">
 
               <div className="space-y-4">
                 <div>
@@ -118,22 +161,47 @@ const LoginForm: React.FC = () => {
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={isLoading || !email}
-                  className="venmo-button w-full flex items-center justify-center"
-                >
-                  {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      Send Code
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                  <button
+                    type="submit"
+                    disabled={isLoading || !email}
+                    className="venmo-button w-full flex items-center justify-center"
+                  >
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        Send Code
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <Wallet className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Connect Your Wallet
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-6">
+                      Connect your wallet to access your account and make payments
+                    </p>
+                  </div>
+
+                  <ConnectButton
+                    onSuccess={handleWalletSuccess}
+                    onError={handleWalletError}
+                  />
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+              )}
+            </div>
           ) : (
             <form onSubmit={handleVerifyCode} className="space-y-6">
               <div>

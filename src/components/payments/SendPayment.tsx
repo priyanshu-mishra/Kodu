@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowLeft, Send, MessageCircle, DollarSign } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, DollarSign, QrCode } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { type User } from '../../utils/supabase';
 import { CHAINS, type TokenContract, parseTokenAmount, formatTokenAmount} from '../../utils/contracts';
 import { getWalletBalance } from '../../utils/thirdwebAPI';
 import TokenChainSelector from '../ui/TokenChainSelector';
 import { useChainTokenPreference } from '../../hooks/useChainTokenPreference';
+import QRCodeScanner from '../ui/QRCodeScanner';
 
 // Constants moved outside component to prevent recreation
 const QUICK_AMOUNTS = ['1', '5', '10', '20', '50'];
 
 interface SendPaymentProps {
-  recipient: User;
+  recipient?: User;
   onBack: () => void;
   onPaymentConfirm: (paymentData: PaymentData) => void;
+  onRecipientSelect?: (recipient: User) => void;
 }
 
 export interface PaymentData {
@@ -24,7 +26,7 @@ export interface PaymentData {
   message: string;
 }
 
-const SendPayment: React.FC<SendPaymentProps> = ({ recipient, onBack, onPaymentConfirm }) => {
+const SendPayment: React.FC<SendPaymentProps> = ({ recipient, onBack, onPaymentConfirm, onRecipientSelect }) => {
   const { user } = useAuth();
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
@@ -32,6 +34,8 @@ const SendPayment: React.FC<SendPaymentProps> = ({ recipient, onBack, onPaymentC
   const [balances, setBalances] = useState<Record<string, string>>({});
   const [isLoadingBalances, setIsLoadingBalances] = useState(true);
   const [error, setError] = useState('');
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<User | null>(recipient || null);
 
   const { preference, updateChain, updateToken } = useChainTokenPreference();
   const { chainId: selectedChainId, tokenAddress: selectedTokenAddress } = preference;
@@ -142,14 +146,35 @@ const SendPayment: React.FC<SendPaymentProps> = ({ recipient, onBack, onPaymentC
     return true;
   }, [selectedToken, amount]);
 
+  const handleQRScan = async (walletAddress: string) => {
+    try {
+      // Look up user by wallet address
+      const { getUserByWalletAddress } = await import('../../utils/supabase');
+      const user = await getUserByWalletAddress(walletAddress);
+      
+      if (user) {
+        setSelectedRecipient(user);
+        onRecipientSelect?.(user);
+        setShowQRScanner(false);
+      } else {
+        setError('User not found for this wallet address');
+        setShowQRScanner(false);
+      }
+    } catch (error) {
+      console.error('Failed to lookup user:', error);
+      setError('Failed to find user for this wallet address');
+      setShowQRScanner(false);
+    }
+  };
+
   const handleContinue = useCallback(() => {
-    if (!selectedToken || !validateAmount()) return;
+    if (!selectedToken || !validateAmount() || !selectedRecipient) return;
 
     try {
       const amountWei = parseTokenAmount(amount, selectedToken.decimals);
       
       const paymentData: PaymentData = {
-        recipient,
+        recipient: selectedRecipient,
         token: selectedToken,
         amount,
         amountWei,
@@ -161,7 +186,7 @@ const SendPayment: React.FC<SendPaymentProps> = ({ recipient, onBack, onPaymentC
       console.error('Error in handleContinue:', error);
       setError('Invalid amount format');
     }
-  }, [selectedToken, validateAmount, amount, message, recipient, onPaymentConfirm]);
+  }, [selectedToken, validateAmount, amount, message, selectedRecipient, onPaymentConfirm]);
 
   const handleQuickAmountClick = useCallback((quickAmount: string) => {
     setAmount(quickAmount);
@@ -233,17 +258,68 @@ const SendPayment: React.FC<SendPaymentProps> = ({ recipient, onBack, onPaymentC
 
       {/* Recipient Info */}
       <div className="venmo-card">
-        <div className="flex items-center space-x-3">
-          <div className="venmo-avatar">
-            {recipient.display_name?.[0]?.toUpperCase() || recipient.username?.[0]?.toUpperCase() || 'U'}
+        {selectedRecipient ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="venmo-avatar">
+                {selectedRecipient.display_name?.[0]?.toUpperCase() || selectedRecipient.username?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">
+                  {selectedRecipient.display_name || selectedRecipient.username}
+                </p>
+                <p className="text-sm text-gray-500">@{selectedRecipient.username}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSelectedRecipient(null)}
+              className="text-sm text-blue-500 hover:text-blue-600"
+            >
+              Change
+            </button>
           </div>
-          <div>
-            <p className="font-semibold text-gray-900">
-              {recipient.display_name || recipient.username}
-            </p>
-            <p className="text-sm text-gray-500">@{recipient.username}</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Choose Recipient</h3>
+              <p className="text-sm text-gray-600">Select who you want to send money to</p>
+            </div>
+            
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowQRScanner(true)}
+                className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-colors"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <QrCode className="w-6 h-6 text-gray-400" />
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">Scan QR Code</p>
+                    <p className="text-sm text-gray-500">Scan a wallet address QR code</p>
+                  </div>
+                </div>
+              </button>
+              
+              <div className="text-center">
+                <p className="text-sm text-gray-500">or</p>
+              </div>
+              
+              <button
+                onClick={onBack}
+                className="w-full p-4 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">@</span>
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">Search by Username</p>
+                    <p className="text-sm text-gray-500">Find user by their username</p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Payment Form */}
@@ -350,13 +426,23 @@ const SendPayment: React.FC<SendPaymentProps> = ({ recipient, onBack, onPaymentC
         {/* Continue Button */}
         <button
           onClick={handleContinue}
-          disabled={!selectedToken || !amount || !isAmountValid}
+          disabled={!selectedToken || !amount || !isAmountValid || !selectedRecipient}
           className="venmo-button w-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send className="h-4 w-4 mr-2" />
           Continue
         </button>
       </div>
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <QRCodeScanner
+          onScan={handleQRScan}
+          onClose={() => setShowQRScanner(false)}
+          title="Scan Wallet Address"
+          description="Point your camera at a wallet address QR code"
+        />
+      )}
     </div>
   );
 };

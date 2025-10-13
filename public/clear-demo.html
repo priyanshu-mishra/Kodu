@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Demo Mode - Kodu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #1a202c;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .status {
+            background: #f7fafc;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        
+        .status.error {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+        
+        .status.success {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2d3748;
+        }
+        
+        .status-text {
+            color: #4a5568;
+            font-size: 14px;
+        }
+        
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        
+        .button:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .button.secondary {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+        
+        .button.secondary:hover {
+            background: #cbd5e0;
+        }
+        
+        .info-box {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .info-box h3 {
+            color: #2d3748;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info-box li {
+            color: #4a5568;
+            font-size: 14px;
+            margin-bottom: 5px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #48bb78;
+            font-weight: bold;
+        }
+        
+        .code {
+            background: #2d3748;
+            color: #68d391;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Clear Demo Mode</h1>
+        <p class="subtitle">Fix bank account issues by clearing demo mode data</p>
+        
+        <div id="currentStatus" class="status">
+            <div class="status-title">Checking current status...</div>
+            <div class="status-text">Please wait...</div>
+        </div>
+        
+        <button class="button" onclick="clearDemoMode()">
+            🗑️ Clear Demo Mode & Logout
+        </button>
+        
+        <button class="button secondary" onclick="checkStatus()">
+            🔍 Check Status Again
+        </button>
+        
+        <div class="info-box">
+            <h3>What this does:</h3>
+            <ul>
+                <li>Removes mock user data</li>
+                <li>Clears authentication tokens</li>
+                <li>Logs you out completely</li>
+                <li>Redirects to login page</li>
+            </ul>
+        </div>
+        
+        <div class="info-box" style="margin-top: 15px;">
+            <h3>After clearing:</h3>
+            <ul>
+                <li>Log in with your wallet or email</li>
+                <li>Set up your username</li>
+                <li>Add bank accounts (will work now!)</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        function checkStatus() {
+            const statusDiv = document.getElementById('currentStatus');
+            const mockUser = localStorage.getItem('mock_user');
+            const walletAddress = localStorage.getItem('wallet_address');
+            const authMethod = localStorage.getItem('auth_method');
+            
+            if (mockUser) {
+                try {
+                    const user = JSON.parse(mockUser);
+                    statusDiv.className = 'status error';
+                    statusDiv.innerHTML = `
+                        <div class="status-title">⚠️ Demo Mode Detected</div>
+                        <div class="status-text">
+                            You are in demo mode with user ID: <span class="code">${user.id}</span><br>
+                            Username: <span class="code">${user.username || 'Not set'}</span><br>
+                            This is preventing you from adding bank accounts.
+                        </div>
+                    `;
+                } catch (e) {
+                    statusDiv.className = 'status error';
+                    statusDiv.innerHTML = `
+                        <div class="status-title">⚠️ Demo Mode Detected</div>
+                        <div class="status-text">Mock user data found but corrupted.</div>
+                    `;
+                }
+            } else if (walletAddress) {
+                statusDiv.className = 'status';
+                statusDiv.innerHTML = `
+                    <div class="status-title">✓ Real User Mode</div>
+                    <div class="status-text">
+                        Connected wallet: <span class="code">${walletAddress.substring(0, 10)}...</span><br>
+                        Auth method: <span class="code">${authMethod || 'unknown'}</span><br>
+                        You should be able to add bank accounts.
+                    </div>
+                `;
+            } else {
+                statusDiv.className = 'status';
+                statusDiv.innerHTML = `
+                    <div class="status-title">ℹ️ Not Logged In</div>
+                    <div class="status-text">No user session found. Please log in.</div>
+                `;
+            }
+        }
+        
+        function clearDemoMode() {
+            if (confirm('This will log you out and clear all demo mode data. Continue?')) {
+                // Clear all localStorage
+                localStorage.removeItem('mock_user');
+                localStorage.removeItem('wallet_address');
+                localStorage.removeItem('auth_method');
+                localStorage.removeItem('thirdweb_token');
+                localStorage.removeItem('token_timestamp');
+                
+                // Show success message
+                const statusDiv = document.getElementById('currentStatus');
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <div class="status-title">✅ Demo Mode Cleared!</div>
+                    <div class="status-text">Redirecting to login page in 2 seconds...</div>
+                `;
+                
+                // Redirect to home page
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            }
+        }
+        
+        // Check status on load
+        checkStatus();
+    </script>
+</body>
+</html>
