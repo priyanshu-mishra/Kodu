@@ -55,21 +55,36 @@ const UsernameSetup: React.FC = () => {
     setError('');
 
     try {
+      console.log('🚀 Submitting username setup:', { username, displayName, walletAddress });
+      
       const updatedUser = await updateUserProfile(walletAddress, {
         username,
         display_name: displayName || username,
       });
 
+      console.log('✅ User profile updated:', updatedUser);
+      
+      // Update auth context with new user data
       updateUser(updatedUser);
+      
+      // Force a refresh to ensure state is updated
       await refreshUser();
+      
+      console.log('🎉 Username setup complete!');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('duplicate key value')) {
+      console.error('❌ Username setup error:', error);
+      console.error('❌ Error details:', errorMessage);
+      
+      if (errorMessage.includes('duplicate key value') || errorMessage.includes('unique constraint')) {
         setError('This username is already taken. Please choose another.');
+      } else if (errorMessage.includes('violates not-null constraint')) {
+        setError('Missing required information. Please try again.');
+      } else if (errorMessage.includes('permission denied') || errorMessage.includes('JWT')) {
+        setError('Authentication error. Please refresh and try again.');
       } else {
-        setError('Failed to set username. Please try again.');
+        setError(`Failed to set username: ${errorMessage}`);
       }
-      console.error('Username setup error:', error);
     } finally {
       setIsLoading(false);
     }

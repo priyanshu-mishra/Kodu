@@ -3,20 +3,29 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Debug logging
-if (!supabaseUrl || supabaseUrl === 'your_supabase_url_here') {
-  console.error('⚠️ Supabase URL is not set! Please add VITE_SUPABASE_URL to your .env file');
-}
-if (!supabaseKey || supabaseKey === 'your_supabase_anon_key_here') {
-  console.error('⚠️ Supabase Anon Key is not set! Please add VITE_SUPABASE_ANON_KEY to your .env file');
+// Check if Supabase is properly configured
+export const isSupabaseConfigured = !!(
+  supabaseUrl && 
+  supabaseKey && 
+  supabaseUrl !== 'your_supabase_url_here' &&
+  supabaseKey !== 'your_supabase_anon_key_here' &&
+  supabaseKey.length > 100
+);
+
+if (!isSupabaseConfigured) {
+  console.warn('⚠️ Supabase not configured. App will work in demo mode with mock data.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseKey || 'placeholder-key',
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
   }
-});
+);
 
 export interface User {
   id: string;
@@ -56,17 +65,30 @@ export const createOrUpdateUser = async (
   username?: string,
   displayName?: string
 ): Promise<User> => {
+  // First check if user exists
+  const existingUser = await getUserByWalletAddress(walletAddress);
+  
   const userData: {
-    email: string;
+    email?: string;
     wallet_address: string;
     updated_at: string;
     username?: string;
     display_name?: string;
   } = {
-    email,
     wallet_address: walletAddress,
     updated_at: new Date().toISOString()
   };
+
+  // Only set email if provided and not empty
+  if (email && email.trim() !== '') {
+    userData.email = email;
+  } else if (existingUser?.email) {
+    // Preserve existing email
+    userData.email = existingUser.email;
+  } else {
+    // Generate a unique placeholder email for wallet-only users
+    userData.email = `wallet-${walletAddress.toLowerCase()}@kodu.app`;
+  }
 
   if (username) userData.username = username;
   if (displayName) userData.display_name = displayName;
@@ -81,6 +103,7 @@ export const createOrUpdateUser = async (
     .single();
 
   if (error) {
+    console.error('Failed to create/update user:', error);
     throw new Error(`Failed to create/update user: ${error.message}`);
   }
 
@@ -133,19 +156,40 @@ export const updateUserProfile = async (
   walletAddress: string,
   updates: Partial<Pick<User, 'username' | 'display_name' | 'avatar_url'>>
 ): Promise<User> => {
+  // If Supabase not configured, throw error instead of creating mock user
+  if (!isSupabaseConfigured) {
+    throw new Error('Database is not configured. Please check your Supabase credentials in .env file.');
+  }
+
+  // First check if user exists to preserve email
+  const existingUser = await getUserByWalletAddress(walletAddress);
+  
+  if (!existingUser) {
+    throw new Error('User not found. Please log in again.');
+  }
+  
+  // Use upsert to handle both create and update cases
   const { data, error } = await supabase
     .from('users')
-    .update({
+    .upsert({
+      wallet_address: walletAddress,
+      email: existingUser.email, // Preserve existing email
       ...updates,
       updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'wallet_address',
+      ignoreDuplicates: false
     })
-    .eq('wallet_address', walletAddress)
     .select()
     .single();
 
   if (error) {
+    console.error('❌ Failed to update user profile:', error);
     throw new Error(`Failed to update user profile: ${error.message}`);
   }
+
+  // Clear any mock user data
+  localStorage.removeItem('mock_user');
 
   return data;
 };

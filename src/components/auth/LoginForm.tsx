@@ -78,7 +78,7 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4 login-page">
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">

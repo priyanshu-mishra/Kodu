@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, type ReactNode } from 'react';
-import { Home, ArrowLeftRight, User, Search, Clock, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
+import { Home, ArrowLeftRight, User, Clock, LogOut, ChevronDown, Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import ModeToggle from './ModeToggle';
 
 interface LayoutProps {
   children: ReactNode;
-  currentTab: 'home' | 'send' | 'activity' | 'search' | 'profile';
-  onTabChange: (tab: 'home' | 'send' | 'activity' | 'search' | 'profile') => void;
+  currentTab: 'home' | 'send' | 'activity' | 'profile';
+  onTabChange: (tab: 'home' | 'send' | 'activity' | 'profile') => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentTab, onTabChange }) => {
@@ -34,7 +34,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTab, onTabChange }) =>
     { id: 'home' as const, icon: Home, label: 'Home' },
     { id: 'send' as const, icon: ArrowLeftRight, label: 'Send/Receive' },
     { id: 'activity' as const, icon: Clock, label: 'Activity' },
-    { id: 'search' as const, icon: Search, label: 'Search' },
     { id: 'profile' as const, icon: User, label: 'Profile' },
   ];
 
@@ -67,8 +66,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentTab, onTabChange }) =>
               )}
             </button>
 
-            {/* User Menu */}
-            {user && (
+            {/* User Menu - only show on Profile tab */}
+            {currentTab === 'profile' && user && (
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}

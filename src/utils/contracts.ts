@@ -20,11 +20,10 @@ export interface ChainConfig {
 export const CHAIN_IDS = {
   ETHEREUM: 1,
   POLYGON: 137,
-  BASE: 8453,
 } as const;
 
-// Default chain (Base)
-export const DEFAULT_CHAIN_ID = CHAIN_IDS.BASE;
+// Default chain (Ethereum)
+export const DEFAULT_CHAIN_ID = CHAIN_IDS.ETHEREUM;
 
 // Get contract addresses from environment variables with fallbacks
 const getContractAddress = (envVar: string, fallback: string): string => {
@@ -66,27 +65,9 @@ export const TOKENS: Record<number, TokenContract[]> = {
       chainId: CHAIN_IDS.POLYGON,
     },
   ],
-  [CHAIN_IDS.BASE]: [
-    {
-      address: getContractAddress('VITE_BASE_USDC_ADDRESS', '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'),
-      symbol: 'USDC',
-      name: 'USD Coin',
-      decimals: 6,
-      chainId: CHAIN_IDS.BASE,
-    },
-  ],
 };
 
 export const CHAINS: ChainConfig[] = [
-  {
-    id: CHAIN_IDS.BASE,
-    name: 'Base',
-    tokens: TOKENS[CHAIN_IDS.BASE],
-    icon: '🟦',
-    description: 'Ethereum L2 built to bring the next billion users to web3',
-    blockTime: 2,
-    gasCurrency: 'ETH',
-  },
   {
     id: CHAIN_IDS.ETHEREUM,
     name: 'Ethereum',
@@ -127,13 +108,13 @@ export const getAllTokens = (): TokenContract[] => {
 };
 
 export const getDefaultToken = (): TokenContract => {
-  // Return Base USDC as the default token
-  return TOKENS[DEFAULT_CHAIN_ID][0]; // First token in Base array (USDC)
+  // Return Ethereum USDC as the default token
+  return TOKENS[DEFAULT_CHAIN_ID][0]; // First token in Ethereum array (USDC)
 };
 
 export const getDefaultChain = (): ChainConfig => {
-  // Return Base as the default chain
-  return CHAINS[0]; // Base is now first in the array
+  // Return Ethereum as the default chain
+  return CHAINS[0]; // Ethereum is first in the array
 };
 
 export const formatTokenAmount = (amount: string | undefined | null, decimals: number): string => {

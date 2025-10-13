@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../utils/supabase';
+import { MockDataService } from './mockDataService';
 import type { BankAccount, BankAccountType, BankAccountStatus } from '../types/database';
 
 // ============================================================================
@@ -41,6 +42,11 @@ export class BankAccountService {
    * Get all bank accounts for a user
    */
   static async getUserBankAccounts(userId: string): Promise<BankAccount[]> {
+    // Use mock data in development mode
+    if (MockDataService.isDevelopmentMode()) {
+      return await MockDataService.getUserBankAccounts(userId);
+    }
+
     const { data, error } = await supabase
       .from('bank_accounts')
       .select('*')
@@ -101,6 +107,12 @@ export class BankAccountService {
     userId: string,
     request: CreateBankAccountRequest
   ): Promise<BankAccount> {
+    // Check if demo mode (mock user ID)
+    if (userId.startsWith('mock-')) {
+      console.error('❌ Cannot create bank account: User is in demo mode');
+      throw new Error('You are currently in demo mode. Please log out and log in again to use the real database. If this issue persists, clear your browser data and try again.');
+    }
+
     // Validate that at least one identifier is provided
     if (!request.iban && !(request.account_number && request.routing_number)) {
       throw new Error('Either IBAN or Account Number with Routing Number must be provided');

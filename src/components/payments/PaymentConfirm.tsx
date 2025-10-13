@@ -36,7 +36,7 @@ const PaymentConfirm: React.FC<PaymentConfirmProps> = ({ paymentData, onBack, on
   }, [paymentMonitoringInterval]);
 
   const { recipient, token: selectedToken, amount, amountWei, message } = paymentData;
-  const chainName = CHAINS.find(c => c.id === selectedToken.chainId)?.name || `Chain ${selectedToken.chainId}`;
+  const chainName = selectedToken?.chainId ? (CHAINS.find(c => c.id === selectedToken.chainId)?.name || `Chain ${selectedToken.chainId}`) : 'Unknown Chain';
 
   const executePayment = async () => {
     if (!user?.wallet_address || !token) return;

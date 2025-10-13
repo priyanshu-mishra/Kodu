@@ -20,7 +20,7 @@ const BalanceDisplay: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showBalances, setShowBalances] = useState(true);
   const [error, setError] = useState('');
-  const [showAllChains, setShowAllChains] = useState(false);
+  const [showAllChains, setShowAllChains] = useState(true); // Show all chains by default
   const [showBuyCrypto, setShowBuyCrypto] = useState(false);
 
   const { user } = useAuth();

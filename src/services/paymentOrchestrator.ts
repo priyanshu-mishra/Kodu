@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../utils/supabase';
+import { MockDataService } from './mockDataService';
 import type {
   PaymentMode,
   TransactionStatus,
@@ -360,6 +361,11 @@ export class PaymentOrchestrator {
    * Get user's EUR balance
    */
   static async getUserEurBalance(userId: string): Promise<{ balance: string; available: string }> {
+    // Use mock data in development mode
+    if (MockDataService.isDevelopmentMode()) {
+      return await MockDataService.getUserEurBalance(userId);
+    }
+
     const { data, error } = await supabase
       .from('accounts')
       .select('balance, available_balance')

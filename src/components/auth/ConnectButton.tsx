@@ -1,69 +1,67 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { Wallet } from 'lucide-react';
+/**
+ * ConnectButton - Thirdweb SDK Integration
+ * Using thirdweb's ConnectWallet component for professional wallet connection
+ */
+
+import React, { useState, useEffect } from 'react';
+import { ConnectWallet } from "@thirdweb-dev/react";
 
 interface ConnectButtonProps {
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
 
-const ConnectButton: React.FC<ConnectButtonProps> = ({ onSuccess, onError }) => {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const { loginWithWallet } = useAuth();
+const ConnectButton: React.FC<ConnectButtonProps> = () => {
+  const [isReady, setIsReady] = useState(false);
 
-  const connectWallet = async () => {
-    if (!window.ethereum) {
-      onError?.('MetaMask is not installed. Please install MetaMask to continue.');
-      return;
-    }
+  useEffect(() => {
+    // Small delay to ensure QueryClient is properly initialized
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
 
-    setIsConnecting(true);
-    
-    try {
-      // Request account access
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts',
-      });
+    return () => clearTimeout(timer);
+  }, []);
 
-      if (accounts.length > 0) {
-        const walletAddress = accounts[0];
-        
-        // Use the existing loginWithWallet function from AuthContext
-        await loginWithWallet(walletAddress);
-        
-        onSuccess?.();
-      }
-    } catch (error: any) {
-      console.error('Failed to connect wallet:', error);
-      
-      if (error.code === 4001) {
-        onError?.('User rejected the connection request.');
-      } else if (error.code === -32002) {
-        onError?.('Connection request already pending. Please check MetaMask.');
-      } else {
-        onError?.('Failed to connect wallet. Please try again.');
-      }
-    } finally {
-      setIsConnecting(false);
-    }
-  };
+  if (!isReady) {
+    return (
+      <div className="w-full">
+        <button
+          disabled
+          className="w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-xl font-medium cursor-not-allowed"
+        >
+          Initializing...
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
-      <button
-        onClick={connectWallet}
-        disabled={isConnecting}
-        className="venmo-button w-full flex items-center justify-center"
-      >
-        {isConnecting ? (
-          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <>
-            <Wallet className="w-5 h-5 mr-2" />
-            Connect Wallet
-          </>
-        )}
-      </button>
+      <ConnectWallet
+        theme="light"
+        btnTitle="Connect Wallet"
+        modalTitle="Choose Your Wallet"
+        modalSize="wide"
+        welcomeScreen={{
+          title: "Welcome to Kodu",
+          subtitle: "Connect your wallet to get started with instant P2P payments",
+        }}
+        modalTitleIconUrl=""
+        detailsBtn={() => {
+          return <div>View Details</div>;
+        }}
+        style={{
+          width: '100%',
+          height: '48px',
+          borderRadius: '12px',
+          fontSize: '16px',
+          fontWeight: '600',
+        }}
+        switchToActiveChain={true}
+        className="w-full"
+        hideTestnetFaucet={true}
+      />
     </div>
   );
 };
